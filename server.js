@@ -16,11 +16,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 /**
- * 取得高雄天氣預報
+ * 取得全台任一縣市天氣預報（預設臺北市）
  * CWA 氣象資料開放平臺 API
  * 使用「一般天氣預報-今明 36 小時天氣預報」資料集
  */
-const getKaohsiungWeather = async (req, res) => {
+const getWeatherByLocation = async (req, res) => {
   try {
     // 檢查是否有設定 API Key
     if (!CWA_API_KEY) {
@@ -30,25 +30,43 @@ const getKaohsiungWeather = async (req, res) => {
       });
     }
 
+    // 使用者傳入的 locationName（例如：高雄市）
+    // 如未取得正確值，則預設臺北市
     // 呼叫 CWA API - 一般天氣預報（36小時）
     // API 文件: https://opendata.cwa.gov.tw/dist/opendata-swagger.html
+    const userLocation = req.query.location;
+    const locationName = userLocation && userLocation.trim() !== ""
+      ? userLocation
+      : "臺北市";
     const response = await axios.get(
       `${CWA_API_BASE_URL}/v1/rest/datastore/F-C0032-001`,
       {
         params: {
           Authorization: CWA_API_KEY,
-          locationName: "宜蘭縣",
+          locationName: locationName,
         },
       }
     );
 
-    // 取得高雄市的天氣資料
+    // 若 API 查不到資料，fallback → 臺北市
     const locationData = response.data.records.location[0];
 
-    if (!locationData) {
-      return res.status(404).json({
-        error: "查無資料",
-        message: "無法取得高雄市天氣資料",
+    if (!locationData && locationName !== "臺北市") {
+      console.log(`⚠ 找不到 ${locationName}資料，自動改為臺北市`);
+      const fallbackResponse = await axios.get(
+        `${CWA_API_BASE_URL}/v1/rest/datastore/F-C0032-001`,
+        {
+          params: {
+            Authorization: CWA_API_KEY,
+            locationName: "臺北市",
+          },
+        }
+      );
+
+      return res.json({
+        success: true,
+        data: fallbackResponse.data.records.location[0],
+        fallback: true,
       });
     }
 
@@ -141,8 +159,8 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "OK", timestamp: new Date().toISOString() });
 });
 
-// 取得高雄天氣預報
-app.get("/api/weather/kaohsiung", getKaohsiungWeather);
+// 全台縣市天氣查詢
+app.get("/api/weather", getWeatherByLocation);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

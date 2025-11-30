@@ -5,7 +5,8 @@
 ## 功能特色
 
 - ✅ 串接 CWA 氣象資料開放平台
-- ✅ 取得高雄市 36 小時天氣預報
+- ✅ 依照傳入的 locationName 取得對應縣市的 36 小時天氣預報
+- ✅ 若無法取得地點或未提供地點，預設為臺北市
 - ✅ 環境變數管理
 - ✅ RESTful API 設計
 - ✅ CORS 支援
@@ -72,7 +73,7 @@ GET /
 {
   "message": "歡迎使用 CWA 天氣預報 API",
   "endpoints": {
-    "kaohsiung": "/api/weather/kaohsiung",
+    "weather": "/api/weather?location=臺北市",
     "health": "/api/health"
   }
 }
@@ -93,10 +94,9 @@ GET /api/health
 }
 ```
 
-### 3. 取得高雄天氣預報
-
+### 3. 取得指定縣市天氣預報（預設臺北市）
 ```
-GET /api/weather/kaohsiung
+GET /api/weather?location=臺北市
 ```
 
 回應範例：
@@ -105,7 +105,7 @@ GET /api/weather/kaohsiung
 {
   "success": true,
   "data": {
-    "city": "高雄市",
+    "city": "臺北市",
     "updateTime": "資料更新時間說明",
     "forecasts": [
       {
